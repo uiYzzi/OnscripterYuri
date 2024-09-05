@@ -27,17 +27,17 @@ function(config_linux TARGET_NAME)
             -static-libstdc++
         )
         target_link_libraries(${TARGET_NAME} PRIVATE # static
-            -Wl,-Bstatic
+            -Wl,-Bdynamic
             lua
             jpeg
             bz2
             SDL2
             SDL2_ttf
             SDL2_image
-            SDL2_mixer
-            -Wl,-Bdynamic
             dl
             pthread
+            -Wl,-Bstatic
+            SDL2_mixer
         )
 
     else()
