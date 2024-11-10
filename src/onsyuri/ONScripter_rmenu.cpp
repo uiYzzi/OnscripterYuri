@@ -133,9 +133,7 @@ void ONScripter::leaveSystemCall( bool restore_flag )
 int ONScripter::executeSystemCall()
 {
     SDL_BlitSurface( text_info.image_surface, NULL, backup_surface, NULL );
-    
     enterSystemCall();
-
     while(system_menu_mode != SYSTEM_NULL){
         dirty_rect.fill( screen_width, screen_height );
         switch(system_menu_mode){

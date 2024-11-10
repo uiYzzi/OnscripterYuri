@@ -401,6 +401,8 @@ private:
     int  getmouseover_lower;
     int  getmouseover_upper;
 
+    bool is_shift_cursor_on_button;
+
     // variables relevant to selection
     enum { SELECT_GOTO_MODE  = 0, 
            SELECT_GOSUB_MODE = 1, 
@@ -436,6 +438,7 @@ private:
     #ifdef USE_SMPEG
     void flushDirectYUV(SDL_Overlay *overlay);
     #endif
+    void updateButtonState(int button, ButtonLink *bl, int c);
     void mouseOverCheck( int x, int y );
     void warpMouse(int x, int y);
     void setFullScreen(bool fullscreen);

@@ -747,7 +747,6 @@ void ONScripter::shiftCursorOnButton( int diff )
     shortcut_mouse_line += diff;
     if      (shortcut_mouse_line < 0)    shortcut_mouse_line = num-1;
     else if (shortcut_mouse_line >= num) shortcut_mouse_line = 0;
-
     button = root_button_link.next;
     for (int i=0 ; i<shortcut_mouse_line ; i++) 
         button  = button->next;
@@ -761,8 +760,10 @@ void ONScripter::shiftCursorOnButton( int diff )
         else if (y >= screen_height) y = screen_height-1;
         x = x * screen_device_width / screen_width;
         y = y * screen_device_width / screen_width;
-        shift_over_button = button->no;
+        // shift_over_button = button->no;
         warpMouse(x, y);
+        updateButtonState(button->no, button, num);
+        is_shift_cursor_on_button = true;
     }
 }
 
@@ -888,10 +889,8 @@ bool ONScripter::keyPressEvent( SDL_KeyboardEvent *event )
             sprintf( wm_edit_string, "%s%s", EDIT_MODE_PREFIX, EDIT_SELECT_STRING );
             setCaption( wm_edit_string, wm_icon_string );
         }
-    }
-    
-    if (event->type == SDL_KEYUP)
         skip_mode &= ~SKIP_NORMAL;
+    }
     
     if ( shift_pressed_status && event->keysym.sym == SDLK_q && current_mode == NORMAL_MODE ){
         endCommand();
@@ -992,19 +991,43 @@ bool ONScripter::keyPressEvent( SDL_KeyboardEvent *event )
                 current_button_state.button = -3;
             sprintf(current_button_state.str, "WHEELDOWN");
         }
+        else if ((!getcursor_flag && event->keysym.sym == SDLK_g) &&
+                 event_mode & WAIT_BUTTON_MODE){
+            if(current_page != start_page)
+            {
+                system_menu_mode = SYSTEM_SAVE;
+                executeSystemCall();
+            }
+        }
+        else if ((!getcursor_flag && event->keysym.sym == SDLK_t) &&
+                 event_mode & WAIT_BUTTON_MODE){
+            if(current_page != start_page)
+            {
+                if(system_menu_mode != SYSTEM_LOOKBACK)
+                {
+                    system_menu_mode = SYSTEM_LOOKBACK;
+                    executeSystemCall();
+                }else{
+                    current_button_state.button = -2;
+                }
+            }
+        }
+        else if ((!getcursor_flag && event->keysym.sym == SDLK_i) &&
+                 event_mode & WAIT_BUTTON_MODE){
+            system_menu_mode = SYSTEM_LOAD;
+            executeSystemCall();
+        }
         else if (((!getcursor_flag && event->keysym.sym == SDLK_UP) ||
                   event->keysym.sym == SDLK_k ||
                   event->keysym.sym == SDLK_p) &&
                  event_mode & WAIT_BUTTON_MODE){
             shiftCursorOnButton(1);
-            return false;
         }
         else if (((!getcursor_flag && event->keysym.sym == SDLK_DOWN) ||
                   event->keysym.sym == SDLK_j ||
                   event->keysym.sym == SDLK_n) &&
                  event_mode & WAIT_BUTTON_MODE){
             shiftCursorOnButton(-1);
-            return false;
         }
         else if ( getpageup_flag && event->keysym.sym == SDLK_PAGEUP ){
             current_button_state.button  = -12;

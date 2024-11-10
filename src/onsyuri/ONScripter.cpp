@@ -878,8 +878,103 @@ void ONScripter::flushDirectYUV(SDL_Overlay *overlay)
 }
 #endif
 
+void ONScripter::updateButtonState(int button, ButtonLink *bl, int c)
+{
+    if (current_over_button != button)
+    {
+        DirtyRect dirty = dirty_rect;
+        dirty_rect.clear();
+
+        SDL_Rect check_src_rect = {0, 0, 0, 0};
+        SDL_Rect check_dst_rect = {0, 0, 0, 0};
+        if (current_over_button != -1)
+        {
+            ButtonLink *cbl = current_button_link;
+            cbl->show_flag = 0;
+            check_src_rect = cbl->image_rect;
+            if (cbl->button_type == ButtonLink::SPRITE_BUTTON)
+            {
+                if (cbl->exbtn_ctl[0])
+                    decodeExbtnControl(cbl->exbtn_ctl[0], &check_src_rect, &check_dst_rect);
+                else
+                {
+                    sprite_info[cbl->sprite_no].visible = true;
+                    sprite_info[cbl->sprite_no].setCell(0);
+                }
+            }
+            else if (cbl->button_type == ButtonLink::TMP_SPRITE_BUTTON)
+            {
+                cbl->show_flag = 1;
+                cbl->anim[0]->visible = true;
+                cbl->anim[0]->setCell(0);
+            }
+            else if (cbl->anim[1] != NULL)
+            {
+                cbl->show_flag = 2;
+            }
+            dirty_rect.add(cbl->image_rect);
+        }
+
+        if (is_exbtn_enabled && exbtn_d_button_link.exbtn_ctl[1])
+        {
+            decodeExbtnControl(exbtn_d_button_link.exbtn_ctl[1], &check_src_rect, &check_dst_rect);
+        }
+
+        if (bl)
+        {
+            if (system_menu_mode != SYSTEM_NULL)
+            {
+                if (menuselectvoice_file_name[MENUSELECTVOICE_OVER])
+                    playSound(menuselectvoice_file_name[MENUSELECTVOICE_OVER], SOUND_CHUNK, false, MIX_WAVE_CHANNEL);
+            }
+            else
+            {
+                if (selectvoice_file_name[SELECTVOICE_OVER])
+                    playSound(selectvoice_file_name[SELECTVOICE_OVER], SOUND_CHUNK, false, MIX_WAVE_CHANNEL);
+            }
+            check_dst_rect = bl->image_rect;
+            if (bl->button_type == ButtonLink::SPRITE_BUTTON)
+            {
+                if (!bexec_flag || !bl->exbtn_ctl[1])
+                {
+                    sprite_info[bl->sprite_no].visible = true;
+                    sprite_info[bl->sprite_no].setCell(1);
+                }
+                if (bl->exbtn_ctl[1])
+                    decodeExbtnControl(bl->exbtn_ctl[1], &check_src_rect, &check_dst_rect);
+            }
+            else if (bl->button_type == ButtonLink::TMP_SPRITE_BUTTON)
+            {
+                bl->show_flag = 1;
+                bl->anim[0]->visible = true;
+                bl->anim[0]->setCell(1);
+            }
+            else if (bl->button_type == ButtonLink::NORMAL_BUTTON ||
+                     bl->button_type == ButtonLink::LOOKBACK_BUTTON)
+            {
+                bl->show_flag = 1;
+            }
+            dirty_rect.add(bl->image_rect);
+            current_button_link = bl;
+            // shortcut_mouse_line = c;
+        }
+
+        flush(refreshMode());
+        dirty_rect = dirty;
+    }
+
+    current_over_button = button;
+    shift_over_button = -1;
+}
+
 void ONScripter::mouseOverCheck( int x, int y )
 {
+    if(is_shift_cursor_on_button)
+    {
+        is_shift_cursor_on_button = false;
+        return;
+    }
+
     int c = 0, max_c = 0;
 
     last_mouse_state.x = x;
@@ -920,79 +1015,7 @@ void ONScripter::mouseOverCheck( int x, int y )
         c = max_c;
     }
 
-    if ( current_over_button != button ){
-        DirtyRect dirty = dirty_rect;
-        dirty_rect.clear();
-
-        SDL_Rect check_src_rect = {0, 0, 0, 0};
-        SDL_Rect check_dst_rect = {0, 0, 0, 0};
-        if ( current_over_button != -1 ){
-            ButtonLink *cbl = current_button_link;
-            cbl->show_flag = 0;
-            check_src_rect = cbl->image_rect;
-            if ( cbl->button_type == ButtonLink::SPRITE_BUTTON ){
-                if ( cbl->exbtn_ctl[0] )
-                    decodeExbtnControl( cbl->exbtn_ctl[0], &check_src_rect, &check_dst_rect );
-                else{
-                    sprite_info[ cbl->sprite_no ].visible = true;
-                    sprite_info[ cbl->sprite_no ].setCell(0);
-                }
-            }
-            else if ( cbl->button_type == ButtonLink::TMP_SPRITE_BUTTON ){
-                cbl->show_flag = 1;
-                cbl->anim[0]->visible = true;
-                cbl->anim[0]->setCell(0);
-            }
-            else if ( cbl->anim[1] != NULL ){
-                cbl->show_flag = 2;
-            }
-            dirty_rect.add( cbl->image_rect );
-        }
-
-        if ( is_exbtn_enabled && exbtn_d_button_link.exbtn_ctl[1] ){
-            decodeExbtnControl( exbtn_d_button_link.exbtn_ctl[1], &check_src_rect, &check_dst_rect );
-        }
-        
-        if ( bl ){
-            if ( system_menu_mode != SYSTEM_NULL ){
-                if ( menuselectvoice_file_name[MENUSELECTVOICE_OVER] )
-                    playSound(menuselectvoice_file_name[MENUSELECTVOICE_OVER], 
-                              SOUND_CHUNK, false, MIX_WAVE_CHANNEL);
-            }
-            else{
-                if ( selectvoice_file_name[SELECTVOICE_OVER] )
-                    playSound(selectvoice_file_name[SELECTVOICE_OVER], 
-                              SOUND_CHUNK, false, MIX_WAVE_CHANNEL);
-            }
-            check_dst_rect = bl->image_rect;
-            if ( bl->button_type == ButtonLink::SPRITE_BUTTON ){
-                if (!bexec_flag || !bl->exbtn_ctl[1]){
-                    sprite_info[ bl->sprite_no ].visible = true;
-                    sprite_info[ bl->sprite_no ].setCell(1);
-                }
-                if ( bl->exbtn_ctl[1] )
-                    decodeExbtnControl( bl->exbtn_ctl[1], &check_src_rect, &check_dst_rect );
-            }
-            else if ( bl->button_type == ButtonLink::TMP_SPRITE_BUTTON ){
-                bl->show_flag = 1;
-                bl->anim[0]->visible = true;
-                bl->anim[0]->setCell(1);
-            }
-            else if ( bl->button_type == ButtonLink::NORMAL_BUTTON ||
-                      bl->button_type == ButtonLink::LOOKBACK_BUTTON ){
-                bl->show_flag = 1;
-            }
-            dirty_rect.add( bl->image_rect );
-            current_button_link = bl;
-            shortcut_mouse_line = c;
-        }
-        
-        flush( refreshMode() );
-        dirty_rect = dirty;
-    }
-
-    current_over_button = button;
-    shift_over_button = -1;
+    updateButtonState(button, bl, c);
 }
 
 void ONScripter::warpMouse(int x, int y) {
